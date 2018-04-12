@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.jfeng.usebsdiff.MainActivity">
+
+    <TextView
+        android:id="@+id/tvsdcarddirectory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="sdcard目录"
+        android:textColor="#FF222222"
+        />
+
+    <EditText
+        android:id="@+id/etoldapkdirectory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="旧包APK所在的目录"
+        />
+
+    <EditText
+        android:id="@+id/etnewapk"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="新包APK完整路径"
+        />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="20dp"
+        android:text="开始生成差异包"
+        android:onClick="generatePatch"
+        />
+
+</LinearLayout>
