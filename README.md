@@ -1,7 +1,7 @@
-#APK简要描述
+# APK简要描述
  差异包生成工具
 
-#操作步骤
+# 操作步骤
 1. 准备历史版本apk和待发布apk 
     xxx_va.b.c_release.apk
     xxx_vl.m.n_release.apk
