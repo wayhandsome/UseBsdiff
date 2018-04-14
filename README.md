@@ -14,8 +14,15 @@
 
 3. 安装完UseBsdiff.apk之后,打开主界面,指定所有apk所在目录路径。
 
-4. 点击"开始生成差异包", 在进行了sdcard读写权限授权成功后,则会在 ${SDCARD}/DiffAPK/dest目录下生成如下差异文件:
+4. 点击"开始生成差异包", 在进行了sdcard读写权限授权成功后,则会在 ${SDCARD}/DiffAPK/dest目录下生成类似如下差异文件:
 
-    vabc-to-vxyz.patch
-    vlmn-to-vxyz.patch
+    > vabc-to-vxyz.patch
+    > vlmn-to-vxyz.patch
+
+5. 执行后的效果
+
+   ![step-1](./1-step.png)
+   ![step-2](./2-step.png)
+   ![step-result](./3-result.png)
+
 
