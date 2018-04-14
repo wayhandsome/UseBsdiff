@@ -31,9 +31,11 @@ import java.io.PrintWriter;
 public class MainActivity extends AppCompatActivity
 {
     EditText etOldApkDirectory;
+    // 最新APK文件名
     EditText etNewApk;
     TextView tvDestPatchDirectory;
     TextView tvDiffLog;
+    EditText etMd5NewAPK;
 
     private Handler logMsgHandler;
     private StringBuilder sb = new StringBuilder("");
@@ -51,19 +53,29 @@ public class MainActivity extends AppCompatActivity
         tvDestPatchDirectory = (TextView)findViewById(R.id.tvpatchdirectory);
         tvDiffLog = (TextView)findViewById(R.id.tvdifflog);
 
+        etMd5NewAPK = (EditText)findViewById(R.id.etmd5newapk);
+        etMd5NewAPK.setEnabled(false);
+
         etOldApkDirectory.setText(Environment.getExternalStorageDirectory().getAbsolutePath()+File.separator+"DiffAPK");
         tvDestPatchDirectory.setText(etOldApkDirectory.getText().toString()+File.separator+"dest");
-        etNewApk.setText(etOldApkDirectory.getText().toString());
 
         logMsgHandler = new Handler(){
             @Override
             public void handleMessage(Message msg)
             {
                 super.handleMessage(msg);
-                sb.append((String)msg.obj);
-                sb.append("\n");
 
-                tvDiffLog.setText(sb.toString());
+                if (msg.what == 1)
+                {
+                    etMd5NewAPK.setText((String)msg.obj);
+                }
+                else
+                {
+                    sb.append((String)msg.obj);
+                    sb.append("\n");
+
+                    tvDiffLog.setText(sb.toString());
+                }
             }
         };
 
@@ -80,9 +92,81 @@ public class MainActivity extends AppCompatActivity
 
             @Override public void afterTextChanged(Editable s)
             {
-                tvDestPatchDirectory.setText(etOldApkDirectory.getText().toString()+File.separator+"dest");
+                String tmpStrDirectory = s.toString();
+                File file = new File(tmpStrDirectory);
+                if (file.exists() && file.isDirectory())
+                {
+                    filterLatestAPK(file);
+                }
+                tvDestPatchDirectory.setText(tmpStrDirectory+File.separator+"dest");
             }
         });
+
+        File file = new File(etOldApkDirectory.getText().toString());
+
+        if (file.exists() && file.isDirectory())
+        {
+            filterLatestAPK(file);
+        }
+    }
+
+
+    private void filterLatestAPK(File directory)
+    {
+        if (directory == null || !directory.exists() || directory.isFile())
+        {
+            return;
+        }
+
+        File[] files = directory.listFiles(new FileFilter() {
+            @Override public boolean accept(File pathname)
+            {
+                return pathname.isFile()&&(pathname.getName().lastIndexOf(".apk")==(pathname.getName().length()-4));
+            }
+        });
+
+        if (files == null || files.length <= 0)
+        {
+            return;
+        }
+
+        File latestFile = null;
+        int maxVerSeq = 0;
+        int tmpVerSeq = 0;
+
+        String strVersion = "";
+        String apkName = "";
+        int fstUndLneIdx = 0;
+        int lstUndLneIdx = 0;
+
+        for(File file:files)
+        {
+            apkName = file.getName();
+
+            fstUndLneIdx = apkName.indexOf("_");
+            lstUndLneIdx = apkName.lastIndexOf("_");
+            //(这里+2)_v是从截取v之后的数字
+            strVersion = apkName.substring(fstUndLneIdx+2,lstUndLneIdx);
+            strVersion = strVersion.replace(".","");
+
+            try
+            {
+                tmpVerSeq = Integer.parseInt(strVersion);
+            }
+            catch (Exception e)
+            {}
+
+            if (tmpVerSeq>maxVerSeq)
+            {
+                maxVerSeq = tmpVerSeq;
+                latestFile = file;
+            }
+        }
+
+        if (latestFile != null)
+        {
+            etNewApk.setText(latestFile.getName());
+        }
     }
 
     public void generatePatch(View view)
@@ -108,7 +192,7 @@ public class MainActivity extends AppCompatActivity
 
         if (TextUtils.isEmpty(oldapkPath)||TextUtils.isEmpty(oldapkPath.trim()))
         {
-            Toast.makeText(this,"请输入历史版本APK所在目录",Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,"请输入所有APK所在目录路径！",Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -116,7 +200,7 @@ public class MainActivity extends AppCompatActivity
 
         if (!oldApkDirectory.exists())
         {
-            Toast.makeText(this,"指定的历史版本APK所在目录不存在！",Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,"指定的所有版本APK所在目录不存在！",Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -124,15 +208,15 @@ public class MainActivity extends AppCompatActivity
 
         if (TextUtils.isEmpty(newApk)||TextUtils.isEmpty(newApk.trim()))
         {
-            Toast.makeText(this,"请输入待发布APK完整路径!",Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,"请输入待发布APK文件名!",Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        File newApkFile = new File(newApk);
+        File newApkFile = new File(oldapkPath+File.separator+newApk);
 
         if (!newApkFile.exists())
         {
-            Toast.makeText(this,"指定的待发布APK不存在！",Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,"指定的待发布APK:！"+newApk+" 在目录 "+oldapkPath+"下不存在！",Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -174,7 +258,7 @@ public class MainActivity extends AppCompatActivity
             tvDiffLog.setText("");
 
             String oldapkPath = etOldApkDirectory.getText().toString();
-            String newApk = etNewApk.getText().toString();
+            String newApk = oldapkPath+File.separator+etNewApk.getText().toString();
 
             BsDiffTask task = new BsDiffTask(new File(oldapkPath),new File(newApk));
             task.execute();
@@ -248,6 +332,11 @@ public class MainActivity extends AppCompatActivity
         {
             String md5NewApk = ApkExtract.getFileMD5(newApk);
 
+            Message msg0 = new Message();
+            msg0.what=1;
+            msg0.obj = md5NewApk;
+            logMsgHandler.sendMessage(msg0);
+
             File destDirectory = new File(oldApkDirectory, "dest");
 
             if (destDirectory.exists())
@@ -275,7 +364,7 @@ public class MainActivity extends AppCompatActivity
 
                     pw = new PrintWriter(new FileWriter(resultFile,true));
 
-                    pw.append("MD5("+newApk.getAbsolutePath()+ ") = "+md5NewApk);
+                    pw.append("MD5("+newApk.getAbsolutePath()+ ") = "+md5NewApk+"\n");
                 }
                 catch (IOException e)
                 {
@@ -297,7 +386,7 @@ public class MainActivity extends AppCompatActivity
                     boolean accepted =
                             (!pathname.getName().equals(newApk.getName()))
                                     &&pathname.isFile()
-                                    &&(pathname.getName().lastIndexOf("apk")==(pathname.getName().length()-3));
+                                    &&(pathname.getName().lastIndexOf(".apk")==(pathname.getName().length()-4));
 
                     return accepted;
                 }
@@ -337,7 +426,7 @@ public class MainActivity extends AppCompatActivity
                 try
                 {
                     pw = new PrintWriter(new FileWriter(resultFile,true));
-                    pw.append(destPatch);
+                    pw.append(destPatch+"\n");
                 }
                 catch (IOException e)
                 {
